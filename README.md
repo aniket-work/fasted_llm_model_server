@@ -1,2 +1,1 @@
-# fasted_llm_model_server
-fasted_llm_model_server
+C:\Users\worka\RustroverProjects\llm_server> cargo build 
