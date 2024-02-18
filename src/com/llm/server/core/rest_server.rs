@@ -1,7 +1,6 @@
 use com::llm::server::core::handler::llm_query;
 use crate::com;
 
-
 use cargo_metadata::{MetadataCommand};
 use serde_json::{json, to_string};
 use hyper::{Body, Request, Response, Server};
@@ -10,9 +9,9 @@ use std::net::SocketAddr;
 use std::convert::Infallible;
 use anyhow::{Context, Error};
 use std::fs;
+use crate::com::llm::server::core::download_model::download_model;
 
 
-// Function to read version details from Cargo.toml
 // Function to read version details from Cargo.toml
 fn read_cargo_toml() -> Result<Option<String>, Error> {
     // Read the contents of Cargo.toml
@@ -51,8 +50,7 @@ fn read_cargo_toml() -> Result<Option<String>, Error> {
 async fn router(req: Request<Body>) -> Result<Response<Body>, Infallible> {
     match (req.uri().path(), req.method()) {
         ("/api/chat", &hyper::Method::POST) => {
-
-            Ok(Response::new(Body::from("Chat endpoint")))
+            llm_query(req).await
         }
         ("/api/health", &hyper::Method::GET) => {
             // Return a 200 OK response with health information in JSON format
@@ -119,8 +117,14 @@ fn not_found() -> Result<Response<Body>, Infallible> {
 
 /// Starts the REST server and listens for incoming requests.
 pub(crate) async fn start_rest_server() {
-    println!("Server listening on port 8083...");
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8083));
+
+    // Call the download_model function
+    match download_model() {
+        Ok(_) => println!("Model initialized and ready to server !"),
+        Err(err) => eprintln!("Error downloading model: {:?}", err),
+    }
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8088));
     let make_svc = make_service_fn(|_conn| {
         async { Ok::<_, Infallible>(service_fn(router)) }
     });
@@ -128,4 +132,5 @@ pub(crate) async fn start_rest_server() {
     if let Err(e) = server.await {
         eprintln!("server error: {}", e);
     }
+
 }
